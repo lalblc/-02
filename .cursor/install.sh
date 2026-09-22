@@ -34,6 +34,17 @@ sudo -E apt-get -y install --no-install-recommends "${PACKAGES[@]}"
 sudo -E apt-get -qq autoremove --purge
 sudo -E apt-get -qq clean
 
+# OpenWrt's build system expects the host `cc`/`c++` to be GCC (as on the
+# ubuntu-20.04 runner the Build OpenWrt workflow targets). Some base images
+# alias `cc` -> clang; clang then looks for libstdc++.so under a GCC version
+# whose -dev package is not installed, so `-lstdc++` fails and host tools such
+# as elfutils fail to configure. Point the default C/C++ compiler back to GCC.
+echo "==> Ensuring the default cc/c++ compiler is GCC (required by OpenWrt host tools)"
+sudo update-alternatives --install /usr/bin/cc cc /usr/bin/gcc 100 >/dev/null 2>&1 || true
+sudo update-alternatives --install /usr/bin/c++ c++ /usr/bin/g++ 100 >/dev/null 2>&1 || true
+sudo update-alternatives --set cc /usr/bin/gcc >/dev/null 2>&1 || true
+sudo update-alternatives --set c++ /usr/bin/g++ >/dev/null 2>&1 || true
+
 # OpenWrt's build system emits locale warnings without a UTF-8 locale.
 echo "==> Ensuring en_US.UTF-8 locale is available"
 sudo locale-gen en_US.UTF-8 >/dev/null 2>&1 || true
